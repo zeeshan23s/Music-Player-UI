@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:music_app/models/songs.dart';
 import 'package:music_app/screens/item_screen.dart';
-import 'package:music_app/utils/music.dart';
 
 class PopularContainer extends StatelessWidget {
-  final Music music;
-  const PopularContainer({Key? key, required this.music}) : super(key: key);
+  final Songs song;
+  const PopularContainer({Key? key, required this.song}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
         Navigator.push(context,
-            MaterialPageRoute(builder: (context) => ItemScreen(song: music)));
+            MaterialPageRoute(builder: (context) => ItemScreen(song: song)));
       },
       child: Container(
         padding: const EdgeInsets.only(bottom: 10),
@@ -21,19 +21,21 @@ class PopularContainer extends StatelessWidget {
               width: 90 * MediaQuery.of(context).size.width / 360,
               decoration: BoxDecoration(
                   image: DecorationImage(
-                      image: AssetImage(music.imageURL), fit: BoxFit.fill))),
+                      image: NetworkImage(song.artworkUrl100!),
+                      fit: BoxFit.fill))),
           SizedBox(width: 10 * MediaQuery.of(context).size.width / 360),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(music.title,
+              Text(song.trackName!,
                   style: Theme.of(context)
                       .textTheme
                       .headline1
                       ?.copyWith(fontSize: 14)),
-              Text(music.author, style: Theme.of(context).textTheme.bodyText1),
-              Text(music.time,
+              Text(song.artistName!,
+                  style: Theme.of(context).textTheme.bodyText1),
+              Text('00:30',
                   style: Theme.of(context)
                       .textTheme
                       .bodyText1

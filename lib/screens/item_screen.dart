@@ -1,10 +1,13 @@
+import 'dart:async';
+
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:music_app/utils/music.dart';
+import 'package:music_app/models/songs.dart';
 
 class ItemScreen extends StatefulWidget {
-  final Music song;
+  final Songs song;
 
   const ItemScreen({Key? key, required this.song}) : super(key: key);
 
@@ -13,7 +16,61 @@ class ItemScreen extends StatefulWidget {
 }
 
 class _ItemScreenState extends State<ItemScreen> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
   bool isFavourite = false;
+
+  Timer? timer;
+
+  int sliderValue = 0;
+
+  bool _isPlaying = false;
+
+  void periodicUpdate() {
+    timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (sliderValue < 30) {
+        setState(() {
+          sliderValue = sliderValue + 1;
+        });
+      } else {
+        setState(() {
+          _isPlaying = false;
+        });
+        stopPeriodicUpdate();
+      }
+    });
+  }
+
+  void stopPeriodicUpdate() {
+    timer?.cancel();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    stopMusic();
+  }
+
+  void playMusic(String audioURL) async {
+    if (sliderValue == 30) {
+      setState(() {
+        sliderValue = 0;
+      });
+    }
+    await _audioPlayer.play(UrlSource(audioURL),
+        position: Duration(seconds: sliderValue));
+    periodicUpdate();
+  }
+
+  void stopMusic() async {
+    _audioPlayer.stop();
+    stopPeriodicUpdate();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +102,8 @@ class _ItemScreenState extends State<ItemScreen> {
                                 320 * MediaQuery.of(context).size.width / 360,
                             decoration: BoxDecoration(
                                 image: DecorationImage(
-                                    image: AssetImage(widget.song.imageURL),
+                                    image: NetworkImage(
+                                        widget.song.artworkUrl100!),
                                     fit: BoxFit.fill),
                                 borderRadius: BorderRadius.circular(30 *
                                     MediaQuery.of(context).size.height /
@@ -88,17 +146,21 @@ class _ItemScreenState extends State<ItemScreen> {
                                     Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text(widget.song.title,
+                                        Text(widget.song.trackName!,
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .headline1
-                                                ?.copyWith(fontSize: 20)),
-                                        Text(widget.song.author,
+                                                ?.copyWith(fontSize: 16),
+                                            overflow: TextOverflow.ellipsis),
+                                        Text(widget.song.artistName!,
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .bodyText1
-                                                ?.copyWith(fontSize: 10))
+                                                ?.copyWith(fontSize: 10),
+                                            overflow: TextOverflow.ellipsis)
                                       ],
                                     ),
                                     GestureDetector(
@@ -130,12 +192,19 @@ class _ItemScreenState extends State<ItemScreen> {
                     child: Column(
                       children: [
                         Slider(
-                            activeColor: Colors.red,
-                            inactiveColor: Colors.white,
-                            min: 0,
-                            max: 100,
-                            value: 80,
-                            onChanged: (value) async {}),
+                          activeColor: Colors.red,
+                          inactiveColor: Colors.white,
+                          min: 0,
+                          max: 30,
+                          value: sliderValue.toDouble(),
+                          onChanged: (value) async {
+                            setState(() {
+                              stopMusic();
+                              sliderValue = value.toInt();
+                              _isPlaying = false;
+                            });
+                          },
+                        ),
                         Padding(
                           padding: EdgeInsets.symmetric(
                               horizontal:
@@ -143,14 +212,15 @@ class _ItemScreenState extends State<ItemScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('00 : 00',
+                              Text(
+                                  '00 : ${sliderValue.toString().length == 1 ? '0$sliderValue' : sliderValue}',
                                   style: TextStyle(
                                       fontFamily:
                                           GoogleFonts.poppins().fontFamily,
                                       fontWeight: FontWeight.w400,
                                       fontSize: 11,
                                       color: Colors.white)),
-                              Text(widget.song.time,
+                              Text('00 : 30',
                                   style: TextStyle(
                                       fontFamily:
                                           GoogleFonts.poppins().fontFamily,
@@ -197,10 +267,25 @@ class _ItemScreenState extends State<ItemScreen> {
                               children: [
                                 const Icon(Icons.replay_10, size: 40),
                                 Row(
-                                  children: const [
-                                    Icon(Icons.skip_previous, size: 40),
-                                    Icon(Icons.play_arrow, size: 40),
-                                    Icon(Icons.skip_next, size: 40)
+                                  children: [
+                                    const Icon(Icons.skip_previous, size: 40),
+                                    GestureDetector(
+                                        onTap: () {
+                                          if (_isPlaying) {
+                                            stopMusic();
+                                          } else {
+                                            playMusic(widget.song.previewUrl!);
+                                          }
+                                          setState(() {
+                                            _isPlaying = !_isPlaying;
+                                          });
+                                        },
+                                        child: Icon(
+                                            _isPlaying
+                                                ? Icons.pause
+                                                : Icons.play_arrow,
+                                            size: 40)),
+                                    const Icon(Icons.skip_next, size: 40)
                                   ],
                                 ),
                                 const Icon(Icons.repeat_rounded, size: 40)
